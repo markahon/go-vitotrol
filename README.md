@@ -1,10 +1,10 @@
 Package `go-vitotrol` provides access to the Viessmann™
 Vitotrol™ cloud API for controlling/monitoring boilers.
 
-[![Build Status](https://travis-ci.org/maxatome/go-vitotrol.svg)](https://travis-ci.org/maxatome/go-vitotrol)
-[![Coverage Status](https://coveralls.io/repos/github/maxatome/go-vitotrol/badge.svg?branch=master)](https://coveralls.io/github/maxatome/go-vitotrol?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/maxatome/go-vitotrol)](https://goreportcard.com/report/github.com/maxatome/go-vitotrol)
-[![GoDoc](https://godoc.org/github.com/maxatome/go-vitotrol?status.svg)](https://godoc.org/github.com/maxatome/go-vitotrol)
+[![Build Status](https://travis-ci.org/benvanmierloo/go-vitotrol.svg)](https://travis-ci.org/benvanmierloo/go-vitotrol)
+[![Coverage Status](https://coveralls.io/repos/github/benvanmierloo/go-vitotrol/badge.svg?branch=master)](https://coveralls.io/github/benvanmierloo/go-vitotrol?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/benvanmierloo/go-vitotrol)](https://goreportcard.com/report/github.com/benvanmierloo/go-vitotrol)
+[![GoDoc](https://godoc.org/github.com/benvanmierloo/go-vitotrol?status.svg)](https://godoc.org/github.com/benvanmierloo/go-vitotrol)
 
 See https://www.viessmann.com/app_vitodata/VIIWebService-1.16.0.0/iPhoneWebService.asmx
 
@@ -33,18 +33,18 @@ To obtain a `vitotrol` executable in `$GOPATH/bin/` directory if
 #### starting go 1.18
 
 ```
-go install github.com/maxatome/go-vitotrol/cmd/vitotrol@master
+go install github.com/benvanmierloo/go-vitotrol/cmd/vitotrol@master
 ```
 
 #### before go 1.18
 
 ```
-go get -u github.com/maxatome/go-vitotrol/cmd/vitotrol
+go get -u github.com/benvanmierloo/go-vitotrol/cmd/vitotrol
 ```
 
 ### The library
 ```
-go get -u github.com/maxatome/go-vitotrol
+go get -u github.com/benvanmierloo/go-vitotrol
 ```
 
 `-u` became useless since go 1.18.

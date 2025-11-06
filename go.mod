@@ -1,4 +1,4 @@
-module github.com/maxatome/go-vitotrol
+module github.com/benvanmierloo/go-vitotrol
 
 go 1.18
 
