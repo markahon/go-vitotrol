@@ -24,6 +24,9 @@ type Device struct {
 	Attributes map[AttrID]*Value
 	// cache of last read timesheets data (filled by GetTimesheetData)
 	Timesheets map[TimesheetID]map[string]TimeslotSlice
+	// SchaltzeitTyp of last read timesheets (filled by
+	// GetTimesheetData), echoed back by WriteTimesheetData
+	TimesheetTypes map[TimesheetID]uint8
 	// cache of last read errors (filled by GetErrorHistory)
 	Errors []ErrorHistoryEvent
 }
@@ -311,9 +314,10 @@ func (d *Device) GetErrorHistory(v *Session) error {
 //
 
 type daySlot struct {
-	Day  string `xml:"Wochentag"`
-	From uint16 `xml:"ZeitVon"`
-	To   uint16 `xml:"ZeitBis"`
+	Day   string `xml:"Wochentag"`
+	From  uint16 `xml:"ZeitVon"`
+	To    uint16 `xml:"ZeitBis"`
+	Value uint8  `xml:"Wert"`
 }
 
 // GetTimesheetDataResponse is a response to a GetTimesheetData request.
@@ -321,6 +325,7 @@ type GetTimesheetDataResponse struct {
 	GetTimesheetDataResult struct {
 		ResultHeader
 		ID       uint16    `xml:"SchaltsatzDaten>DatenpunktID"`
+		Type     uint8     `xml:"SchaltsatzDaten>SchaltzeitTyp"`
 		DaySlots []daySlot `xml:"SchaltsatzDaten>Schaltzeiten>Schaltzeit"`
 	} `xml:"Body>GetTimesheetDataResponse>GetTimesheetDataResult"`
 }
@@ -346,8 +351,9 @@ func (d *Device) GetTimesheetData(v *Session, id TimesheetID) error {
 	for _, slot := range resp.GetTimesheetDataResult.DaySlots {
 		day := strings.ToLower(slot.Day)
 		timesheet[day] = append(timesheet[day], Timeslot{
-			From: slot.From,
-			To:   slot.To,
+			From:  slot.From,
+			To:    slot.To,
+			Value: slot.Value,
 		})
 	}
 
@@ -357,6 +363,12 @@ func (d *Device) GetTimesheetData(v *Session, id TimesheetID) error {
 	}
 
 	d.Timesheets[id] = timesheet
+	if resp.GetTimesheetDataResult.Type != 0 {
+		if d.TimesheetTypes == nil {
+			d.TimesheetTypes = map[TimesheetID]uint8{}
+		}
+		d.TimesheetTypes[id] = resp.GetTimesheetDataResult.Type
+	}
 
 	return nil
 }
@@ -401,8 +413,15 @@ var timesheetDaysIdx = func() map[string]int {
 // not populate the internal cache before returning (Timesheets
 // field), use WriteTimesheetDataWait instead.
 func (d *Device) WriteTimesheetData(v *Session, id TimesheetID, data map[string]TimeslotSlice) (string, error) {
+	// Echo the type read by GetTimesheetData: the server stores it as
+	// sent, so the historical constant 1 would retype e.g. a WO1C
+	// circulation pump timesheet (7).
+	typ := d.TimesheetTypes[id]
+	if typ == 0 {
+		typ = 1
+	}
 	buf := bytes.NewBufferString(
-		`<SchaltzeitTyp>1</SchaltzeitTyp>` +
+		fmt.Sprintf(`<SchaltzeitTyp>%d</SchaltzeitTyp>`, typ) +
 			`<DatenpunktId>`)
 	buf.WriteString(strconv.Itoa(int(id)))
 	buf.WriteString(`</DatenpunktId>` +
@@ -457,15 +476,19 @@ func (d *Device) WriteTimesheetData(v *Session, id TimesheetID, data map[string]
 			preDays[day] = tmpBuf
 
 			for idxSlot, slot := range daySlots {
+				value := slot.Value
+				if value == 0 {
+					value = 1
+				}
 				tmpBuf.WriteString(fmt.Sprintf(
 					`<Schaltzeit>`+
 						`<Wochentag>%s</Wochentag>`+
 						`<ZeitVon>%04d</ZeitVon>`+
 						`<ZeitBis>%04d</ZeitBis>`+
-						`<Wert>1</Wert>`+
+						`<Wert>%d</Wert>`+
 						`<Position>%d</Position>`+
 						`</Schaltzeit>`,
-					day, slot.From, slot.To, idxSlot))
+					day, slot.From, slot.To, value, idxSlot))
 			}
 		}
 	}
@@ -561,7 +584,7 @@ func waitAsyncStatus(v *Session, refreshID string, ch chan error,
 			break
 		}
 
-		if time.Until(start) >= timeout {
+		if time.Since(start) >= timeout {
 			ch <- ErrTimeout
 			break
 		}

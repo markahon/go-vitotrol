@@ -454,14 +454,15 @@ func TestGetTimesheetData(tt *testing.T) {
 					"mon": {
 						{From: 900, To: 1011},
 						{From: 1015, To: 1222},
-						{From: 1230, To: 1345},
+						{From: 1230, To: 1345, Value: 2},
 					},
 					"wed": {
 						{From: 1900, To: 2011},
 						{From: 2015, To: 2222},
 						{From: 2230, To: 2345},
 					},
-				})
+				}) &&
+				t.Cmp(d.TimesheetTypes[23], uint8(7))
 		},
 		// SOAP action
 		"GetTimesheetData",
@@ -471,11 +472,13 @@ func TestGetTimesheetData(tt *testing.T) {
 <ErgebnisText>Kein Fehler</ErgebnisText>
 <SchaltsatzDaten>
   <DatenpunktId>23</DatenpunktId>
+  <SchaltzeitTyp>7</SchaltzeitTyp>
   <Schaltzeiten>
     <Schaltzeit>
       <Wochentag>Mon</Wochentag>
       <ZeitVon>1230</ZeitVon>
       <ZeitBis>1345</ZeitBis>
+      <Wert>2</Wert>
     </Schaltzeit>
     <Schaltzeit>
       <Wochentag>Wed</Wochentag>
@@ -589,6 +592,27 @@ func TestWriteTimesheetData(tt *testing.T) {
 <ErgebnisText>Kein Fehler</ErgebnisText>
 <AktualisierungsId>123456789</AktualisierungsId>`,
 		"WriteTimesheetData")
+
+	// Type and slot values read by GetTimesheetData are echoed back
+	expectedTyped := *expectedRequest
+	expectedTyped.WriteTimesheetData.Type = 7
+	expectedTyped.WriteTimesheetData.DaySlots = []requestDaySlot{
+		{Day: "MON", From: "0630", To: "0900", Value: 2, Position: 0},
+	}
+	testSendRequestDeviceAny(t,
+		func(v *Session, d *Device) bool {
+			d.TimesheetTypes = map[TimesheetID]uint8{23: 7}
+			id, err := d.WriteTimesheetData(v, 23, map[string]TimeslotSlice{
+				"mon": {{From: 630, To: 900, Value: 2}},
+			})
+			return t.CmpDeeply(id, "123456789") && t.CmpNoError(err)
+		},
+		"WriteTimesheetData",
+		&expectedTyped,
+		`<Ergebnis>0</Ergebnis>
+<ErgebnisText>Kein Fehler</ErgebnisText>
+<AktualisierungsId>123456789</AktualisierungsId>`,
+		"WriteTimesheetData with type and values")
 
 	// Bad dayslot
 	testSendRequestDeviceAny(t,

@@ -9,6 +9,9 @@ import (
 type Timeslot struct {
 	From uint16 `json:"from"`
 	To   uint16 `json:"to"`
+	// Value is the slot's Wert (e.g. a circulation pump cycle mode).
+	// 0 = unknown, written as 1.
+	Value uint8 `json:"value,omitempty"`
 }
 
 // String returns a string representing the time slot.
