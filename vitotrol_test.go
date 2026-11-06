@@ -291,6 +291,27 @@ func TestLogin(tt *testing.T) {
 		// Response to reply
 		`<bad XML>`,
 		"Login with error")
+
+	// Special characters stay valid XML
+	testSendRequestAny(t,
+		func(v *Session) bool {
+			return t.CmpNoError(v.Login("pi<po", "bin&go"))
+		},
+		"Login",
+		&loginRequest{
+			AppID:      "prod",
+			AppVersion: "4.3.1",
+			Password:   "bin&go",
+			System:     "Android",
+			Login:      "pi<po",
+		},
+		`<LoginResponse xmlns="http://www.e-controlnet.de/services/vii/">
+  <LoginResult>
+    <Ergebnis>0</Ergebnis>
+    <ErgebnisText>Kein Fehler</ErgebnisText>
+  </LoginResult>
+</LoginResponse>`,
+		"Login with special characters")
 }
 
 // GetDevices.

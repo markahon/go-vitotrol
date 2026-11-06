@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"time"
 )
 
 // MainURL is the Viessmann Vitodata API URL.
@@ -34,8 +35,16 @@ type Session struct {
 	Debug bool
 }
 
+// xmlEscape returns s escaped for use as XML text.
+func xmlEscape(s string) string {
+	var buf bytes.Buffer
+	xml.EscapeText(&buf, []byte(s)) //nolint: errcheck // bytes.Buffer never fails
+	return buf.String()
+}
+
 func (v *Session) sendRequest(soapAction string, reqBody string, respBody HasResultHeader) error {
-	client := &http.Client{}
+	// Without a timeout a server that never answers hangs the caller forever
+	client := &http.Client{Timeout: 60 * time.Second}
 
 	req, err := http.NewRequest("POST", MainURL,
 		bytes.NewBuffer([]byte(reqHeader+reqBody+reqFooter)))
@@ -79,7 +88,7 @@ func (v *Session) sendRequest(soapAction string, reqBody string, respBody HasRes
 		return nil
 	}
 
-	return fmt.Errorf("HTTP error: [status=%d] %v (%+v)",
+	return fmt.Errorf("HTTP error: [status=%d] %s (%+v)",
 		resp.StatusCode, respBodyRaw, resp.Header)
 }
 
@@ -108,9 +117,9 @@ func (v *Session) Login(login, password string) error {
 	body := `<Login>
 <AppId>prod</AppId>
 <AppVersion>4.3.1</AppVersion>
-<Passwort>` + password + `</Passwort>
+<Passwort>` + xmlEscape(password) + `</Passwort>
 <Betriebssystem>Android</Betriebssystem>
-<Benutzer>` + login + `</Benutzer>
+<Benutzer>` + xmlEscape(login) + `</Benutzer>
 </Login>`
 
 	v.Cookies = nil

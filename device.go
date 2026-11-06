@@ -152,7 +152,7 @@ func (r *WriteDataResponse) ResultHeader() *ResultHeader {
 func (d *Device) WriteData(v *Session, attrID AttrID, value string) (string, error) {
 	var resp WriteDataResponse
 	err := d.sendRequest(v, "WriteData",
-		fmt.Sprintf("<DatapointId>%d</DatapointId><Wert>%s</Wert>", attrID, value),
+		fmt.Sprintf("<DatapointId>%d</DatapointId><Wert>%s</Wert>", attrID, xmlEscape(value)),
 		&resp)
 	if err != nil {
 		return "", err
