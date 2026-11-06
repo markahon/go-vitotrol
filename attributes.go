@@ -3,6 +3,7 @@ package vitotrol
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // An AttrID defines an attribute ID.
@@ -319,6 +320,6 @@ type Value struct {
 // Num returns the numerical value of this value. If the value is not
 // a numerical one, 0 is returned.
 func (v *Value) Num() (ret float64) {
-	ret, _ = strconv.ParseFloat(v.Value, 64)
+	ret, _ = strconv.ParseFloat(strings.Replace(v.Value, ",", ".", 1), 64)
 	return
 }

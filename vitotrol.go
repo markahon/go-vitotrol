@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,8 @@ const (
 // Vitotrol™ server. See Login method as entry point.
 type Session struct {
 	Cookies []string
+	// cookiesMutex guards Cookies: requests can run concurrently
+	cookiesMutex sync.Mutex
 
 	Devices []Device
 
@@ -54,9 +57,11 @@ func (v *Session) sendRequest(soapAction string, reqBody string, respBody HasRes
 
 	req.Header.Set("SOAPAction", soapURL+soapAction)
 	req.Header.Set("Content-Type", "text/xml; charset=utf-8")
+	v.cookiesMutex.Lock()
 	for _, cookie := range v.Cookies {
 		req.Header.Add("Cookie", cookie)
 	}
+	v.cookiesMutex.Unlock()
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -69,7 +74,9 @@ func (v *Session) sendRequest(soapAction string, reqBody string, respBody HasRes
 	if resp.StatusCode == 200 {
 		cookies := resp.Header[http.CanonicalHeaderKey("Set-Cookie")]
 		if cookies != nil {
+			v.cookiesMutex.Lock()
 			v.Cookies = cookies
+			v.cookiesMutex.Unlock()
 		}
 
 		if v.Debug {
@@ -122,7 +129,9 @@ func (v *Session) Login(login, password string) error {
 <Benutzer>` + xmlEscape(login) + `</Benutzer>
 </Login>`
 
+	v.cookiesMutex.Lock()
 	v.Cookies = nil
+	v.cookiesMutex.Unlock()
 
 	var resp LoginResponse
 	err := v.sendRequest("Login", body, &resp)

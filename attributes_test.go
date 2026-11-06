@@ -68,6 +68,9 @@ func TestValue(tt *testing.T) {
 	v := Value{Value: "34"}
 	t.CmpDeeply(v.Num(), float64(34))
 
+	v.Value = "21,5"
+	t.CmpDeeply(v.Num(), 21.5)
+
 	v = Value{Value: "foo"}
 	t.CmpDeeply(v.Num(), float64(0))
 }
